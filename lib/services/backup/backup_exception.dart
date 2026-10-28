@@ -5,17 +5,22 @@ class BackupException implements Exception {
   const BackupException(
     this.message, {
     this.cause,
-    this.isWrongCode = false,
+    this.legacyCodeRequired = false,
+    this.wrongLegacyCode = false,
   });
 
   final String message;
   final Object? cause;
 
-  /// Vrai lorsque le déchiffrement a échoué parce que le code fourni ne
-  /// correspond pas à la sauvegarde (ou que le fichier est endommagé).
+  /// Vrai lorsque le fichier a été créé avec l'ancien code de récupération.
   ///
-  /// L'appelant peut alors proposer de saisir un autre code de récupération.
-  final bool isWrongCode;
+  /// Les nouvelles sauvegardes n'ont plus de code. L'écran de restauration
+  /// demande donc ce code uniquement pour les anciens fichiers `.fayma`.
+  final bool legacyCodeRequired;
+
+  /// Vrai lorsque le code fourni pour une ancienne sauvegarde ne correspond
+  /// pas au fichier (ou que celui-ci est endommagé).
+  final bool wrongLegacyCode;
 
   @override
   String toString() => message;

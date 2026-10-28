@@ -139,147 +139,167 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             )
           : null,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppTheme.pagePadding,
-            14,
-            AppTheme.pagePadding,
-            104,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Header(shopName: shopName),
-            const SizedBox(height: 22),
-            _HeroCard(
-              totalDue: totals?.totalDue ?? 0,
-              clientsWithDebt: totals?.clientsWithDebt ?? 0,
-              dueShare: totals?.dueShare ?? 0,
-              clientCount: allClients.length,
-            ),
-            const SizedBox(height: 14),
-            _ReportCard(
-              busy: _reportBusy,
-              onTap: _exportReport,
-            ),
-            const SizedBox(height: 26),
-            summariesAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 44),
-                child: AppLoading(label: 'Chargement des clients…'),
+            // Seul l'en-tête reste fixe ; tout le reste de l'accueil défile.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.pagePadding,
+                14,
+                AppTheme.pagePadding,
+                0,
               ),
-              error: (error, _) => FaymaCard(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 8,
+              child: _Header(shopName: shopName),
+            ),
+            Expanded(
+              child: ListView(
+                key: const Key('home-scroll'),
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.pagePadding,
+                  22,
+                  AppTheme.pagePadding,
+                  104,
                 ),
-                child: AppEmptyState(
-                  icon: Icons.cloud_off_rounded,
-                  title: 'Impossible de charger les clients',
-                  message: 'Vérifiez que les données sont accessibles, '
-                      'puis réessayez.',
-                  primaryLabel: 'Réessayer',
-                  primaryIcon: Icons.refresh_rounded,
-                  onPrimary: _reload,
-                  color: AppColors.coral,
-                  background: AppColors.coralSoft,
-                ),
-              ),
-              data: (_) {
-                if (!hasClients) {
-                  return const _EmptyClients();
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    AppSectionHeader(
-                      title: 'Clients',
-                      subtitle: '${allClients.length} '
-                          'client${allClients.length > 1 ? 's' : ''} au total',
-                      trailing: AppStatusPill(
-                        label: '${clients.length} affiché'
-                            '${clients.length > 1 ? 's' : ''}',
-                        color: AppColors.textSecondary,
-                        background: AppColors.surface,
-                        icon: Icons.people_alt_outlined,
-                        compact: true,
+                children: [
+                  _HeroCard(
+                    totalDue: totals?.totalDue ?? 0,
+                    totalDeposits: totals?.totalDeposits ?? 0,
+                    clientsWithDebt: totals?.clientsWithDebt ?? 0,
+                    dueShare: totals?.dueShare ?? 0,
+                    clientCount: allClients.length,
+                  ),
+                  const SizedBox(height: 14),
+                  _ReportCard(
+                    busy: _reportBusy,
+                    onTap: _exportReport,
+                  ),
+                  const SizedBox(height: 26),
+                  summariesAsync.when(
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 44),
+                      child: AppLoading(label: 'Chargement des clients…'),
+                    ),
+                    error: (error, _) => FaymaCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 8,
+                      ),
+                      child: AppEmptyState(
+                        icon: Icons.cloud_off_rounded,
+                        title: 'Impossible de charger les clients',
+                        message: 'Vérifiez que les données sont accessibles, '
+                            'puis réessayez.',
+                        primaryLabel: 'Réessayer',
+                        primaryIcon: Icons.refresh_rounded,
+                        onPrimary: _reload,
+                        color: AppColors.coral,
+                        background: AppColors.coralSoft,
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: _searchController,
-                      onChanged: (value) => setState(() => _query = value),
-                      textInputAction: TextInputAction.search,
-                      decoration: InputDecoration(
-                        hintText: 'Rechercher un client ou un numéro',
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: _query.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'Effacer la recherche',
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _query = '');
-                                },
-                                icon: const Icon(Icons.close_rounded, size: 20),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 38,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
+                    data: (_) {
+                      if (!hasClients) {
+                        return const _EmptyClients();
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _FilterChip(
-                            label: 'Tous',
-                            selected: _filter == _ClientFilter.all,
-                            onSelected: () => setState(
-                              () => _filter = _ClientFilter.all,
+                          AppSectionHeader(
+                            title: 'Clients',
+                            subtitle: '${allClients.length} '
+                                'client${allClients.length > 1 ? 's' : ''} au total',
+                            trailing: AppStatusPill(
+                              label: '${clients.length} affiché'
+                                  '${clients.length > 1 ? 's' : ''}',
+                              color: AppColors.textSecondary,
+                              background: AppColors.surface,
+                              icon: Icons.people_alt_outlined,
+                              compact: true,
                             ),
                           ),
-                          _FilterChip(
-                            label: 'À crédit',
-                            selected: _filter == _ClientFilter.debt,
-                            onSelected: () => setState(
-                              () => _filter = _ClientFilter.debt,
+                          const SizedBox(height: 14),
+                          TextField(
+                            controller: _searchController,
+                            onChanged: (value) =>
+                                setState(() => _query = value),
+                            textInputAction: TextInputAction.search,
+                            decoration: InputDecoration(
+                              hintText: 'Rechercher un client ou un numéro',
+                              prefixIcon: const Icon(Icons.search_rounded),
+                              suffixIcon: _query.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      tooltip: 'Effacer la recherche',
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        setState(() => _query = '');
+                                      },
+                                      icon: const Icon(Icons.close_rounded,
+                                          size: 20),
+                                    ),
                             ),
                           ),
-                          _FilterChip(
-                            label: 'Dépôt',
-                            selected: _filter == _ClientFilter.deposit,
-                            onSelected: () => setState(
-                              () => _filter = _ClientFilter.deposit,
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 38,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                _FilterChip(
+                                  label: 'Tous',
+                                  selected: _filter == _ClientFilter.all,
+                                  onSelected: () => setState(
+                                    () => _filter = _ClientFilter.all,
+                                  ),
+                                ),
+                                _FilterChip(
+                                  label: 'À crédit',
+                                  selected: _filter == _ClientFilter.debt,
+                                  onSelected: () => setState(
+                                    () => _filter = _ClientFilter.debt,
+                                  ),
+                                ),
+                                _FilterChip(
+                                  label: 'Dépôt',
+                                  selected: _filter == _ClientFilter.deposit,
+                                  onSelected: () => setState(
+                                    () => _filter = _ClientFilter.deposit,
+                                  ),
+                                ),
+                                _FilterChip(
+                                  label: 'À jour',
+                                  selected: _filter == _ClientFilter.clear,
+                                  onSelected: () => setState(
+                                    () => _filter = _ClientFilter.clear,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          _FilterChip(
-                            label: 'À jour',
-                            selected: _filter == _ClientFilter.clear,
-                            onSelected: () => setState(
-                              () => _filter = _ClientFilter.clear,
-                            ),
-                          ),
+                          const SizedBox(height: 16),
+                          if (clients.isEmpty)
+                            _NoResults(onClear: _clearFilters)
+                          else
+                            for (final summary in clients) ...[
+                              _ClientCard(
+                                summary: summary,
+                                onTap: () => context.push(
+                                  AppRoutes.client(summary.client.id),
+                                ),
+                                onRemind: summary.hasDebt
+                                    ? () => _sendReminder(summary)
+                                    : null,
+                                reminderBusy:
+                                    _reminderClientId == summary.client.id,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (clients.isEmpty)
-                      _NoResults(onClear: _clearFilters)
-                    else
-                      for (final summary in clients) ...[
-                        _ClientCard(
-                          summary: summary,
-                          onTap: () => context.push(
-                            AppRoutes.client(summary.client.id),
-                          ),
-                          onRemind: summary.hasDebt
-                              ? () => _sendReminder(summary)
-                              : null,
-                          reminderBusy: _reminderClientId == summary.client.id,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                  ],
-                );
-              },
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -411,8 +431,8 @@ class _Header extends StatelessWidget {
           ),
         ),
         IconButton(
-          onPressed: () => context.push(AppRoutes.shopSettings),
-          tooltip: 'Paramètres de la boutique',
+          onPressed: () => context.push(AppRoutes.settings),
+          tooltip: 'Paramètres',
           style: IconButton.styleFrom(
             backgroundColor: AppColors.surface,
             foregroundColor: AppColors.ink,
@@ -424,21 +444,6 @@ class _Header extends StatelessWidget {
           ),
           icon: const Icon(Icons.settings_outlined, size: 20),
         ),
-        const SizedBox(width: 6),
-        IconButton(
-          onPressed: () => context.push(AppRoutes.backup),
-          tooltip: 'Sauvegarde',
-          style: IconButton.styleFrom(
-            backgroundColor: AppColors.surface,
-            foregroundColor: AppColors.ink,
-            side: const BorderSide(color: AppColors.border),
-            minimumSize: const Size(42, 42),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          icon: const Icon(Icons.cloud_upload_outlined, size: 20),
-        ),
       ],
     );
   }
@@ -447,12 +452,14 @@ class _Header extends StatelessWidget {
 class _HeroCard extends StatelessWidget {
   const _HeroCard({
     required this.totalDue,
+    required this.totalDeposits,
     required this.clientsWithDebt,
     required this.dueShare,
     required this.clientCount,
   });
 
   final int totalDue;
+  final int totalDeposits;
   final int clientsWithDebt;
   final double dueShare;
   final int clientCount;
@@ -531,7 +538,9 @@ class _HeroCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
+              _HeroDepositLine(totalDeposits: totalDeposits),
+              const SizedBox(height: 18),
               Row(
                 children: [
                   Expanded(
@@ -601,6 +610,63 @@ class _HeroCard extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroDepositLine extends StatelessWidget {
+  const _HeroDepositLine({required this.totalDeposits});
+
+  final int totalDeposits;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.savings_outlined,
+            size: 16,
+            color: AppColors.mintBright,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Dépôts disponibles',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.labelMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.72),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                formatFcfa(totalDeposits),
+                key: const Key('home-total-deposits'),
+                style: textTheme.titleSmall?.copyWith(
+                  color: AppColors.mintBright,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
           ),
         ],
       ),

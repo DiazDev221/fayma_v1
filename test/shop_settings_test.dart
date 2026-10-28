@@ -27,24 +27,4 @@ void main() {
     final other = ShopSettings();
     expect(await other.readShopName(), 'Boutique Awa');
   });
-
-  test('enregistre, relit et retire le plafond de crédit', () async {
-    final settings = ShopSettings();
-
-    expect(await settings.readCreditLimit(), isNull);
-
-    await settings.saveCreditLimit(15000);
-    expect(await settings.readCreditLimit(), 15000);
-
-    await settings.saveCreditLimit(null);
-    expect(await settings.readCreditLimit(), isNull);
-  });
-
-  test('le plafond est relu par une nouvelle instance', () async {
-    final settings = ShopSettings();
-    await settings.saveCreditLimit(25000);
-
-    final other = ShopSettings();
-    expect(await other.readCreditLimit(), 25000);
-  });
 }

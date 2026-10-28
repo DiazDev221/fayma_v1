@@ -16,7 +16,6 @@ class InvoicePdfData {
     required this.operation,
     required this.currentBalance,
     required this.generatedAt,
-    this.creditLimit,
     this.isCancelled = false,
   });
 
@@ -27,10 +26,6 @@ class InvoicePdfData {
   final Balance currentBalance;
 
   final DateTime generatedAt;
-
-  /// Plafond de crédit commun à la boutique, ou null si aucun plafond n'est
-  /// appliqué.
-  final int? creditLimit;
 
   /// Vrai si l'opération a été annulée par une opération inverse.
   final bool isCancelled;
@@ -395,16 +390,6 @@ pw.Widget _situationCard(InvoicePdfData data) {
                 balance.deposit > 0
                     ? PdfStyle.mintDark
                     : PdfStyle.textSecondary,
-              ),
-            ),
-            pw.SizedBox(width: 10),
-            pw.Expanded(
-              child: _situationValue(
-                'Plafond de crédit',
-                data.creditLimit == null
-                    ? 'Aucune limite'
-                    : pdfFcfa(data.creditLimit!),
-                PdfStyle.inkSoft,
               ),
             ),
           ],

@@ -13,23 +13,17 @@ import 'package:fayma/providers.dart';
 import 'package:fayma/screens/add_client_screen.dart';
 import 'package:fayma/screens/backup_screen.dart';
 import 'package:fayma/screens/client_detail_screen.dart';
+import 'package:fayma/screens/clients_screen.dart';
 import 'package:fayma/screens/deposit_screen.dart';
+import 'package:fayma/screens/edit_client_screen.dart';
 import 'package:fayma/screens/home_screen.dart';
 import 'package:fayma/screens/purchase_screen.dart';
 import 'package:fayma/screens/repayment_screen.dart';
+import 'package:fayma/screens/settings_screen.dart';
 import 'package:fayma/services/backup/backup_settings.dart';
 import 'package:fayma/theme/app_theme.dart';
 
 class _FakeBackupSettings implements BackupSettingsStore {
-  @override
-  Future<String?> readRecoveryCode() async => 'ABCD2345EFGH6789JKMN2345';
-
-  @override
-  Future<String> ensureRecoveryCode() async => 'ABCD2345EFGH6789JKMN2345';
-
-  @override
-  Future<void> setRecoveryCode(String code) async {}
-
   @override
   Future<String> deviceId() async => 'appareil-test';
 
@@ -113,11 +107,14 @@ void main() {
 
     await shot(const HomeScreen(), '01_home');
     await shot(const ClientDetailScreen(clientId: 'c1'), '02_client');
+    await shot(const ClientsScreen(), '02b_clients');
+    await shot(const EditClientScreen(clientId: 'c1'), '02c_edit_client');
     await shot(const AddClientScreen(), '03_add_client');
     await shot(const PurchaseScreen(clientId: 'c1'), '04_purchase');
     await shot(const RepaymentScreen(clientId: 'c1'), '05_repayment');
     await shot(const DepositScreen(clientId: 'c1'), '06_deposit');
     await shot(const BackupScreen(), '07_backup');
+    await shot(const SettingsScreen(), '08_settings');
     if (Platform.isLinux) {
       // Keep the test deterministic on CI too.
     }

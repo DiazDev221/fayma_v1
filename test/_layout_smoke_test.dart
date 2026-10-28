@@ -11,23 +11,19 @@ import 'package:fayma/providers.dart';
 import 'package:fayma/screens/add_client_screen.dart';
 import 'package:fayma/screens/backup_screen.dart';
 import 'package:fayma/screens/client_detail_screen.dart';
+import 'package:fayma/screens/clients_screen.dart';
 import 'package:fayma/screens/deposit_screen.dart';
+import 'package:fayma/screens/edit_client_screen.dart';
 import 'package:fayma/screens/home_screen.dart';
 import 'package:fayma/screens/pick_contact_screen.dart';
 import 'package:fayma/screens/purchase_screen.dart';
 import 'package:fayma/screens/repayment_screen.dart';
-import 'package:fayma/screens/shop_settings_screen.dart';
+import 'package:fayma/screens/settings_screen.dart';
 import 'package:fayma/services/backup/backup_settings.dart';
 import 'package:fayma/services/shop_settings.dart';
 import 'package:fayma/theme/app_theme.dart';
 
 class _FakeBackupSettings implements BackupSettingsStore {
-  @override
-  Future<String?> readRecoveryCode() async => 'ABCD2345EFGH6789JKMN2345';
-  @override
-  Future<String> ensureRecoveryCode() async => 'ABCD2345EFGH6789JKMN2345';
-  @override
-  Future<void> setRecoveryCode(String code) async {}
   @override
   Future<String> deviceId() async => 'appareil-test';
   @override
@@ -46,12 +42,6 @@ class _FakeShopSettings implements ShopSettingsStore {
 
   @override
   Future<void> saveShopName(String name) async {}
-
-  @override
-  Future<int?> readCreditLimit() async => null;
-
-  @override
-  Future<void> saveCreditLimit(int? limit) async {}
 }
 
 Widget _wrap(Widget child) => ProviderScope(
@@ -105,14 +95,16 @@ void main() {
 
   final screens = <String, Widget>{
     'home': const HomeScreen(),
+    'clients': const ClientsScreen(),
     'client': const ClientDetailScreen(clientId: 'c1'),
+    'edit-client': const EditClientScreen(clientId: 'c1'),
     'add': const AddClientScreen(),
     'purchase': const PurchaseScreen(clientId: 'c1'),
     'repayment': const RepaymentScreen(clientId: 'c1'),
     'deposit': const DepositScreen(clientId: 'c1'),
     'backup': const BackupScreen(),
     'contacts': const PickContactScreen(),
-    'settings': const ShopSettingsScreen(),
+    'settings': const SettingsScreen(),
   };
 
   for (final entry in screens.entries) {

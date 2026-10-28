@@ -8,6 +8,7 @@ import '../router/app_router.dart';
 import '../services/operation_sms.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import '../utils/operation_order.dart';
 import '../utils/share_origin.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/payment_method_selector.dart';
@@ -25,7 +26,16 @@ class ClientDetailScreen extends ConsumerWidget {
         ref.watch(clientOperationsProvider(clientId)).valueOrNull ?? const [];
 
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            onPressed: () => context.push(AppRoutes.editClient(clientId)),
+            tooltip: 'Modifier le client',
+            icon: const Icon(Icons.edit_outlined),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         child: summaryAsync.when(
           loading: () => const AppLoading(label: 'Chargement du client…'),
@@ -166,13 +176,13 @@ class _HeaderBlock extends StatelessWidget {
   }
 }
 
-class _BalanceCard extends ConsumerWidget {
+class _BalanceCard extends StatelessWidget {
   const _BalanceCard({required this.summary});
 
   final ClientSummary summary;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final balance = summary.balance;
 
@@ -197,11 +207,6 @@ class _BalanceCard extends ConsumerWidget {
       accent = AppColors.indigoBright;
       hint = 'Aucune dette, aucun dépôt en attente';
     }
-
-    final creditLimit = ref.watch(shopCreditLimitProvider).valueOrNull;
-    final usage = creditLimit == null || creditLimit <= 0
-        ? 0.0
-        : (balance.debt / creditLimit).clamp(0.0, 1.0);
 
     return FaymaCard(
       gradient: AppGradients.ink,
@@ -270,92 +275,13 @@ class _BalanceCard extends ConsumerWidget {
                   color: Colors.white.withValues(alpha: 0.64),
                 ),
               ),
-              const SizedBox(height: 18),
-              Tooltip(
-                message:
-                    'Plafond commun à tous les clients. Touchez pour le modifier.',
-                child: InkWell(
-                  onTap: () => context.push(AppRoutes.shopSettings),
-                  borderRadius: BorderRadius.circular(13),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.07),
-                      borderRadius: BorderRadius.circular(13),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.shield_outlined,
-                          size: 16,
-                          color: AppColors.mintBright,
-                        ),
-                        const SizedBox(width: 7),
-                        Expanded(
-                          child: Text(
-                            'Plafond de crédit',
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              creditLimit == null
-                                  ? 'Aucune limite'
-                                  : formatFcfa(creditLimit),
-                              style: textTheme.titleSmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        const Icon(
-                          Icons.chevron_right_rounded,
-                          size: 17,
-                          color: AppColors.mintBright,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
               if (summary.hasDebt) ...[
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Remboursé à '
-                        '${(balance.repaidShare * 100).round()} %',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.68),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      creditLimit == null
-                          ? 'Sans plafond'
-                          : '${(usage * 100).round()} % du plafond',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.mintBright,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 18),
+                Text(
+                  'Remboursé à ${(balance.repaidShare * 100).round()} %',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.68),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 AppProgressBar(
@@ -702,7 +628,6 @@ class _HistoryState extends ConsumerState<_History> {
             operation: operation,
             currentBalance: widget.summary.balance,
             isCancelled: isCancelled,
-            creditLimit: ref.read(shopCreditLimitProvider).valueOrNull,
             sharePositionOrigin: sharePositionOriginFor(context),
           );
     } catch (error) {
@@ -784,29 +709,24 @@ class _HistoryState extends ConsumerState<_History> {
     };
 
     // Plus récent en haut ; à date égale, la dernière enregistrée d'abord.
-    final indexed = [
-      for (var i = 0; i < operations.length; i++) MapEntry(i, operations[i]),
-    ]..sort((a, b) {
-        final byDate = b.value.date.compareTo(a.value.date);
-        return byDate != 0 ? byDate : b.key.compareTo(a.key);
-      });
+    final sortedOperations = sortOperationsByMostRecent(operations);
 
     return Column(
       children: [
-        for (final entry in indexed) ...[
+        for (final operation in sortedOperations) ...[
           _HistoryRow(
-            operation: entry.value,
-            isCancelled: reversedIds.contains(entry.value.id),
-            pdfBusy: _busyOperationId == entry.value.id,
+            operation: operation,
+            isCancelled: reversedIds.contains(operation.id),
+            pdfBusy: _busyOperationId == operation.id,
             onPdf: () => _shareInvoice(
               context,
-              entry.value,
-              reversedIds.contains(entry.value.id),
+              operation,
+              reversedIds.contains(operation.id),
             ),
             onLongPress:
-                entry.value.isReversal || reversedIds.contains(entry.value.id)
+                operation.isReversal || reversedIds.contains(operation.id)
                     ? null
-                    : () => _confirmReverse(context, entry.value),
+                    : () => _confirmReverse(context, operation),
           ),
           const SizedBox(height: 10),
         ],

@@ -25,7 +25,6 @@ class PdfExportService {
     required Operation operation,
     required Balance currentBalance,
     required bool isCancelled,
-    int? creditLimit,
     Rect? sharePositionOrigin,
   }) async {
     final bytes = await buildInvoicePdf(
@@ -34,7 +33,6 @@ class PdfExportService {
         operation: operation,
         currentBalance: currentBalance,
         generatedAt: DateTime.now(),
-        creditLimit: creditLimit,
         isCancelled: isCancelled,
       ),
     );

@@ -7,33 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fayma/data/in_memory_credit_repository.dart';
 import 'package:fayma/main.dart';
 import 'package:fayma/providers.dart';
-import 'package:fayma/services/backup/backup_settings.dart';
-
-class _FakeBackupSettings implements BackupSettingsStore {
-  @override
-  Future<String?> readRecoveryCode() async => 'ABCD2345EFGH6789JKMN2345';
-
-  @override
-  Future<String> ensureRecoveryCode() async => 'ABCD2345EFGH6789JKMN2345';
-
-  @override
-  Future<void> setRecoveryCode(String code) async {}
-
-  @override
-  Future<String> deviceId() async => 'appareil-test';
-
-  @override
-  Future<String> shopId() async => 'boutique-test';
-
-  @override
-  Future<void> setShopId(String shopId) async {}
-
-  @override
-  Future<DateTime?> lastBackupAt() async => null;
-
-  @override
-  Future<void> setLastBackupAt(DateTime at) async {}
-}
+import 'package:fayma/utils/format.dart';
 
 void main() {
   setUpAll(() async {
@@ -56,12 +30,57 @@ void main() {
 
     expect(find.text('Fayma'), findsOneWidget);
     expect(find.text('Total à recevoir'), findsOneWidget);
+    expect(find.text('Dépôts disponibles'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('home-total-deposits'))).data,
+      formatFcfa(12000),
+    );
     expect(find.text('Moussa Diop'), findsOneWidget);
     expect(find.text('Fatou Ndiaye'), findsOneWidget);
     expect(find.text('Aissatou Ba'), findsOneWidget);
   });
 
-  testWidgets('L\'écran de sauvegarde affiche le code de récupération',
+  testWidgets('Seul l\'en-tête reste fixe pendant le défilement',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(420, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          creditRepositoryProvider.overrideWithValue(
+            InMemoryCreditRepository.withDemoData(),
+          ),
+        ],
+        child: const FaymaApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final headerBefore = tester.getTopLeft(find.text('Fayma'));
+    final settingsBefore = tester.getTopLeft(find.byTooltip('Paramètres'));
+    final totalBefore = tester.getTopLeft(find.text('Total à recevoir'));
+    final reportBefore = tester.getTopLeft(find.text('Rapport général PDF'));
+
+    await tester.drag(
+      find.byKey(const Key('home-scroll')),
+      const Offset(0, -120),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(find.text('Fayma')), headerBefore);
+    expect(tester.getTopLeft(find.byTooltip('Paramètres')), settingsBefore);
+    expect(
+      tester.getTopLeft(find.text('Total à recevoir')).dy,
+      lessThan(totalBefore.dy),
+    );
+    expect(
+      tester.getTopLeft(find.text('Rapport général PDF')).dy,
+      lessThan(reportBefore.dy),
+    );
+  });
+
+  testWidgets('L\'écran de sauvegarde s\'ouvre depuis les paramètres',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(320, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -72,25 +91,28 @@ void main() {
           creditRepositoryProvider.overrideWithValue(
             InMemoryCreditRepository.withDemoData(),
           ),
-          backupSettingsProvider.overrideWithValue(_FakeBackupSettings()),
         ],
         child: const FaymaApp(),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Sauvegarde'));
+    await tester.tap(find.byTooltip('Paramètres'));
+    await tester.pumpAndSettle();
+    expect(find.text('Paramètres'), findsOneWidget);
+
+    await tester.tap(find.text('Sauvegarde'));
     await tester.pumpAndSettle();
 
     expect(find.text('Sauvegarde'), findsOneWidget);
-    expect(find.text('Code de récupération'), findsOneWidget);
-    expect(find.text('ABCD-2345-EFGH-6789-JKMN-2345'), findsOneWidget);
+    expect(find.text('Code de récupération'), findsNothing);
     await tester.drag(
       find.byKey(const Key('backup-list')),
       const Offset(0, -1000),
     );
     await tester.pumpAndSettle();
     expect(find.text('Exporter une sauvegarde'), findsOneWidget);
+    expect(find.text('Restaurer une sauvegarde'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

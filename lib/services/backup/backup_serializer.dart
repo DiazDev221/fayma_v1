@@ -225,7 +225,6 @@ class BackupSerializer {
         'nom': client.nom,
         'prenom': client.prenom,
         'telephone': client.telephone,
-        'credit_limit': client.creditLimit,
         'created_at': client.createdAt.toUtc().toIso8601String(),
       };
 
@@ -247,16 +246,13 @@ class BackupSerializer {
       };
 
   Client _clientFromJson(Map<String, Object?> json, String path) {
-    final creditLimit = _asInt(json['credit_limit'], '$path.credit_limit');
-    if (creditLimit < 0) {
-      throw BackupException('Plafond de crédit invalide pour $path.');
-    }
+    // Le champ `credit_limit` des anciennes sauvegardes est ignoré : le
+    // crédit n'est plus plafonné.
     return Client(
       id: _asString(json['id'], '$path.id'),
       nom: _asString(json['nom'], '$path.nom'),
       prenom: _asString(json['prenom'], '$path.prenom'),
       telephone: _asString(json['telephone'], '$path.telephone'),
-      creditLimit: creditLimit,
       createdAt: _asDate(json['created_at'], '$path.created_at'),
     );
   }

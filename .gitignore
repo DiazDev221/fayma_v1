@@ -44,11 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Identifiants OAuth Google Drive locaux (voir tool/drive_defines.example.json)
-/tool/drive_defines.json
-/android/app/google-services.json
-/ios/Runner/GoogleService-Info.plist
-
 # Signature de release Android : à sauvegarder hors du dépôt
 /android/key.properties
 /android/app/upload-keystore.jks

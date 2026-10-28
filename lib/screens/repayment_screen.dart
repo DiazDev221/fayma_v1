@@ -159,7 +159,7 @@ class _RepaymentScreenState extends ConsumerState<RepaymentScreen> {
               AppTheme.pagePadding,
               16,
             ),
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
             children: [
               FaymaCard(
                 padding: const EdgeInsets.symmetric(

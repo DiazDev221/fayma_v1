@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -6,27 +7,19 @@ import 'package:fayma/data/in_memory_credit_repository.dart';
 import 'package:fayma/data/repository_snapshot.dart';
 import 'package:fayma/models/client.dart';
 import 'package:fayma/models/operation.dart';
+import 'package:fayma/models/payment_method.dart';
 import 'package:fayma/services/backup/backup_crypto.dart';
 import 'package:fayma/services/backup/backup_exception.dart';
+import 'package:fayma/services/backup/backup_serializer.dart';
 import 'package:fayma/services/backup/backup_service.dart';
 import 'package:fayma/services/backup/backup_settings.dart';
 import 'package:fayma/services/shop_settings.dart';
 
 class _FakeSettings implements BackupSettingsStore {
-  _FakeSettings({required this.code, required this.shop});
+  _FakeSettings({required this.shop});
 
-  String code;
   String shop;
   DateTime? last;
-
-  @override
-  Future<String?> readRecoveryCode() async => code;
-
-  @override
-  Future<String> ensureRecoveryCode() async => code;
-
-  @override
-  Future<void> setRecoveryCode(String value) async => code = value;
 
   @override
   Future<String> deviceId() async => 'appareil-test';
@@ -48,19 +41,12 @@ class _FakeShopSettings implements ShopSettingsStore {
   _FakeShopSettings({this.name = ''});
 
   String name;
-  int? creditLimit;
 
   @override
   Future<String> readShopName() async => name;
 
   @override
   Future<void> saveShopName(String value) async => name = value;
-
-  @override
-  Future<int?> readCreditLimit() async => creditLimit;
-
-  @override
-  Future<void> saveCreditLimit(int? limit) async => creditLimit = limit;
 }
 
 Client _client() => Client(
@@ -68,7 +54,6 @@ Client _client() => Client(
       nom: 'Diop',
       prenom: 'Moussa',
       telephone: '77 123 45 67',
-      creditLimit: 15000,
       createdAt: DateTime(2026, 9, 20),
     );
 
@@ -79,13 +64,38 @@ Operation _credit() => Operation.purchase(
       date: DateTime(2026, 10, 1),
     );
 
+Operation _repayment() => Operation(
+      id: 'operation-2',
+      clientId: 'client-1',
+      type: OperationType.repayment,
+      amount: 5000,
+      date: DateTime(2026, 10, 2),
+      paymentMethod: PaymentMethod.orangeMoney,
+    );
+
+Operation _deposit() => Operation(
+      id: 'operation-3',
+      clientId: 'client-1',
+      type: OperationType.deposit,
+      amount: 12000,
+      date: DateTime(2026, 10, 3),
+      paymentMethod: PaymentMethod.wave,
+    );
+
+/// Supprime le marqueur des nouvelles sauvegardes pour simuler un fichier
+/// créé avant la suppression du code de récupération.
+Future<void> _removeKeySource(File file) async {
+  final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+  json.remove('key_source');
+  await file.writeAsString(jsonEncode(json));
+}
+
 void main() {
   const crypto = BackupCrypto(
     memoryKib: 128,
     iterations: 1,
     parallelism: 1,
   );
-  const code = 'ABCD2345EFGH6789JKMN2345';
 
   late Directory tempDir;
 
@@ -103,8 +113,10 @@ void main() {
     final sourceRepo = InMemoryCreditRepository();
     await sourceRepo.addClient(_client());
     await sourceRepo.addOperation(_credit());
+    await sourceRepo.addOperation(_repayment());
+    await sourceRepo.addOperation(_deposit());
 
-    final sourceSettings = _FakeSettings(code: code, shop: 'boutique-1');
+    final sourceSettings = _FakeSettings(shop: 'boutique-1');
     final sourceShop = _FakeShopSettings(name: 'Boutique Awa');
     final sourceService = BackupService(
       repository: sourceRepo,
@@ -119,7 +131,7 @@ void main() {
     expect(await export.file.exists(), isTrue);
     expect(export.file.path, endsWith('.fayma'));
     expect(export.clientCount, 1);
-    expect(export.operationCount, 1);
+    expect(export.operationCount, 3);
 
     final targetRepo = InMemoryCreditRepository();
     await targetRepo.addClient(
@@ -131,10 +143,7 @@ void main() {
         createdAt: DateTime(2020),
       ),
     );
-    final targetSettings = _FakeSettings(
-      code: 'ZZZZ2345ZZZZ6789ZZZZ2345',
-      shop: 'boutique-2',
-    );
+    final targetSettings = _FakeSettings(shop: 'boutique-2');
     final targetShop = _FakeShopSettings(name: 'Ancienne boutique');
     final targetService = BackupService(
       repository: targetRepo,
@@ -145,9 +154,9 @@ void main() {
       appVersionProvider: () async => '1.0.0+1',
     );
 
-    final preview = await targetService.inspectFile(export.file, code);
+    final preview = await targetService.inspectFile(export.file);
     expect(preview.payload.clientCount, 1);
-    expect(preview.payload.operationCount, 1);
+    expect(preview.payload.operationCount, 3);
     expect(preview.payload.shopId, 'boutique-1');
     expect(preview.payload.shopName, 'Boutique Awa');
 
@@ -155,16 +164,56 @@ void main() {
 
     final snapshot = await targetRepo.snapshot();
     expect(snapshot.clients, [_client()]);
-    expect(snapshot.operations, [_credit()]);
+    expect(snapshot.operations, [_credit(), _repayment(), _deposit()]);
+    expect(
+      snapshot.operations
+          .firstWhere((operation) => operation.id == 'operation-2')
+          .paymentMethod,
+      PaymentMethod.orangeMoney,
+    );
+    expect(
+      snapshot.operations
+          .firstWhere((operation) => operation.id == 'operation-3')
+          .paymentMethod,
+      PaymentMethod.wave,
+    );
     expect(targetSettings.shop, 'boutique-1');
-    expect(targetSettings.code, code);
     expect(targetShop.name, 'Boutique Awa');
   });
 
-  test('refuse un mauvais code sans toucher aux données', () async {
+  test('une ancienne sauvegarde conserve le nom local', () async {
+    final repo = InMemoryCreditRepository();
+    final settings = _FakeSettings(shop: 'boutique-1');
+    final shop = _FakeShopSettings(name: 'Boutique Awa');
+    final service = BackupService(
+      repository: repo,
+      settings: settings,
+      shopSettings: shop,
+      crypto: crypto,
+    );
+    final preview = BackupPreview(
+      payload: BackupPayload(
+        createdAt: DateTime(2026, 10, 1),
+        appVersion: '0.1.0',
+        schemaVersion: 1,
+        deviceId: 'appareil-test',
+        shopId: 'boutique-1',
+        shopName: '',
+        clients: const [],
+        operations: const [],
+      ),
+      sourceName: 'ancienne.fayma',
+    );
+
+    await service.restore(preview);
+
+    expect(shop.name, 'Boutique Awa');
+  });
+
+  test('refuse un fichier modifié sans toucher aux données', () async {
     final repo = InMemoryCreditRepository();
     await repo.addClient(_client());
-    final settings = _FakeSettings(code: code, shop: 'boutique-1');
+    final settings = _FakeSettings(shop: 'boutique-1');
     final service = BackupService(
       repository: repo,
       settings: settings,
@@ -174,8 +223,15 @@ void main() {
     );
     final export = await service.export();
 
+    final json =
+        jsonDecode(await export.file.readAsString()) as Map<String, dynamic>;
+    final cipherText = base64Decode(json['ciphertext'] as String);
+    cipherText[0] = cipherText[0] ^ 0x01;
+    json['ciphertext'] = base64Encode(cipherText);
+    await export.file.writeAsString(jsonEncode(json));
+
     await expectLater(
-      service.inspectFile(export.file, 'ZZZZ2345ZZZZ6789ZZZZ2345'),
+      service.inspectFile(export.file),
       throwsA(isA<BackupException>()),
     );
 
@@ -186,7 +242,7 @@ void main() {
   test('lit aussi une sauvegarde fournie en mémoire', () async {
     final repo = InMemoryCreditRepository();
     await repo.addClient(_client());
-    final settings = _FakeSettings(code: code, shop: 'boutique-1');
+    final settings = _FakeSettings(shop: 'boutique-1');
     final service = BackupService(
       repository: repo,
       settings: settings,
@@ -199,7 +255,6 @@ void main() {
 
     final preview = await service.inspectBytes(
       bytes,
-      recoveryCode: code,
       sourceName: 'sauvegarde.fayma',
     );
 
@@ -209,7 +264,7 @@ void main() {
 
   test('mémorise la date de la dernière sauvegarde', () async {
     final repo = InMemoryCreditRepository();
-    final settings = _FakeSettings(code: code, shop: 'boutique-1');
+    final settings = _FakeSettings(shop: 'boutique-1');
     final service = BackupService(
       repository: repo,
       settings: settings,
@@ -229,7 +284,7 @@ void main() {
     await sourceRepo.addClient(_client());
     await sourceRepo.addOperation(_credit());
 
-    final settings = _FakeSettings(code: code, shop: 'boutique-1');
+    final settings = _FakeSettings(shop: 'boutique-1');
     final service = BackupService(
       repository: sourceRepo,
       settings: settings,
@@ -238,7 +293,7 @@ void main() {
       appVersionProvider: () async => '1.0.0+1',
     );
     final first = await service.export();
-    final preview = await service.inspectFile(first.file, code);
+    final preview = await service.inspectFile(first.file);
 
     final targetRepo = InMemoryCreditRepository();
     await targetRepo.replaceAll(
@@ -258,5 +313,78 @@ void main() {
 
     expect(second.clientCount, first.clientCount);
     expect(second.operationCount, first.operationCount);
+  });
+
+  test('restaure une ancienne sauvegarde avec son code de récupération',
+      () async {
+    const legacyCode = 'ABCD2345EFGH6789JKMN2345';
+    const legacyCrypto = BackupCrypto(
+      memoryKib: 128,
+      iterations: 1,
+      parallelism: 1,
+      keyMaterial: legacyCode,
+    );
+
+    final sourceRepo = InMemoryCreditRepository();
+    await sourceRepo.addClient(_client());
+    final sourceSettings = _FakeSettings(shop: 'boutique-1');
+    final sourceService = BackupService(
+      repository: sourceRepo,
+      settings: sourceSettings,
+      crypto: legacyCrypto,
+      directoryProvider: () async => tempDir,
+      appVersionProvider: () async => '1.0.0+1',
+    );
+    final export = await sourceService.export();
+    await _removeKeySource(export.file);
+
+    final targetRepo = InMemoryCreditRepository();
+    final targetSettings = _FakeSettings(shop: 'boutique-2');
+    final targetService = BackupService(
+      repository: targetRepo,
+      settings: targetSettings,
+      crypto: crypto,
+      directoryProvider: () async => tempDir,
+      appVersionProvider: () async => '1.0.0+1',
+    );
+
+    await expectLater(
+      targetService.inspectFile(export.file),
+      throwsA(
+        isA<BackupException>()
+            .having(
+              (e) => e.legacyCodeRequired,
+              'legacyCodeRequired',
+              isTrue,
+            )
+            .having((e) => e.wrongLegacyCode, 'wrongLegacyCode', isFalse),
+      ),
+    );
+
+    await expectLater(
+      targetService.inspectFile(
+        export.file,
+        legacyRecoveryCode: 'ZZZZ2345ZZZZ6789ZZZZ2345',
+      ),
+      throwsA(
+        isA<BackupException>()
+            .having(
+              (e) => e.legacyCodeRequired,
+              'legacyCodeRequired',
+              isTrue,
+            )
+            .having((e) => e.wrongLegacyCode, 'wrongLegacyCode', isTrue),
+      ),
+    );
+
+    final preview = await targetService.inspectFile(
+      export.file,
+      legacyRecoveryCode: legacyCode,
+    );
+    expect(preview.payload.clientCount, 1);
+
+    await targetService.restore(preview);
+
+    expect((await targetRepo.snapshot()).clients, [_client()]);
   });
 }

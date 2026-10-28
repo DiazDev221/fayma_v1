@@ -7,6 +7,7 @@ import '../../models/balance.dart';
 import '../../models/client.dart';
 import '../../models/operation.dart';
 import '../../utils/format.dart';
+import '../../utils/operation_order.dart';
 import 'pdf_style.dart';
 
 /// Données du rapport général de la boutique.
@@ -78,13 +79,7 @@ Future<Uint8List> buildGeneralReportPdf(GeneralReportData data) async {
     }
   }
 
-  // Plus récent en premier ; à date égale, la dernière enregistrée d'abord.
-  final indexedOperations = [
-    for (var i = 0; i < operations.length; i++) MapEntry(i, operations[i]),
-  ]..sort((a, b) {
-      final byDate = b.value.date.compareTo(a.value.date);
-      return byDate != 0 ? byDate : b.key.compareTo(a.key);
-    });
+  final sortedOperations = sortOperationsByMostRecent(operations);
 
   final clientNames = <String, String>{
     for (final client in clients) client.id: client.fullName,
@@ -232,7 +227,7 @@ Future<Uint8List> buildGeneralReportPdf(GeneralReportData data) async {
           _emptyMessage('Aucune opération enregistrée dans la boutique.')
         else
           _operationsTable(
-            operations: indexedOperations,
+            operations: sortedOperations,
             clientNames: clientNames,
             reversedIds: reversedIds,
           ),
@@ -401,7 +396,7 @@ pw.TableRow _clientRow(Client client, Balance balance) {
 }
 
 pw.Widget _operationsTable({
-  required List<MapEntry<int, Operation>> operations,
+  required List<Operation> operations,
   required Map<String, String> clientNames,
   required Set<String> reversedIds,
 }) {
@@ -430,10 +425,10 @@ pw.Widget _operationsTable({
           pdfCell('Statut', bold: true, align: pw.TextAlign.right),
         ],
       ),
-      for (final entry in operations)
+      for (final operation in operations)
         _operationRow(
-          entry.value,
-          clientNames[entry.value.clientId] ?? 'Client inconnu',
+          operation,
+          clientNames[operation.clientId] ?? 'Client inconnu',
           reversedIds,
         ),
     ],

@@ -54,8 +54,7 @@ android {
             signingConfig = if (hasReleaseKeystore) {
                 signingConfigs.getByName("release")
             } else {
-                // Permet toujours un build de test, mais la connexion Google
-                // Drive échouera si le SHA-1 de debug n'est pas déclaré.
+                // Permet un build de test sans keystore de release.
                 signingConfigs.getByName("debug")
             }
         }

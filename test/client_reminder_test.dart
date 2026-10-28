@@ -32,13 +32,7 @@ class _FakeShopSettings implements ShopSettingsStore {
   Future<String> readShopName() async => 'Boutique Awa';
 
   @override
-  Future<int?> readCreditLimit() async => null;
-
-  @override
   Future<void> saveShopName(String name) async {}
-
-  @override
-  Future<void> saveCreditLimit(int? limit) async {}
 }
 
 void main() {

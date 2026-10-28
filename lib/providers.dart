@@ -7,11 +7,6 @@ import 'models/client.dart';
 import 'models/operation.dart';
 import 'services/backup/backup_service.dart';
 import 'services/backup/backup_settings.dart';
-import 'services/backup/drive/drive_api.dart';
-import 'services/backup/drive/drive_auth.dart';
-import 'services/backup/drive/drive_backup_service.dart';
-import 'services/backup/drive/drive_config.dart';
-import 'services/backup/drive/drive_settings.dart';
 import 'services/pdf/pdf_export_service.dart';
 import 'services/shop_settings.dart';
 import 'services/sms_sender.dart';
@@ -31,12 +26,12 @@ final smsSenderProvider = Provider<SmsSender>((ref) {
   return createPlatformSmsSender();
 });
 
-/// Code de récupération, identifiants et date de la dernière sauvegarde.
+/// Identifiants et date de la dernière sauvegarde.
 final backupSettingsProvider = Provider<BackupSettingsStore>((ref) {
   return BackupSettings();
 });
 
-/// Paramètres de la boutique (nom des SMS et plafond de crédit commun).
+/// Paramètres de la boutique (nom utilisé dans les SMS).
 final shopSettingsProvider = Provider<ShopSettingsStore>((ref) {
   return ShopSettings();
 });
@@ -54,53 +49,12 @@ final shopNameProvider = FutureProvider<String>((ref) async {
   }
 });
 
-/// Plafond de crédit commun à tous les clients. Null = aucune limite.
-final shopCreditLimitProvider = FutureProvider<int?>((ref) async {
-  try {
-    return await ref.watch(shopSettingsProvider).readCreditLimit();
-  } catch (error) {
-    debugPrint('Lecture du plafond de crédit : $error');
-    return null;
-  }
-});
-
 /// Export et restauration des données de la boutique.
 final backupServiceProvider = Provider<BackupService>((ref) {
   return BackupService(
     repository: ref.watch(creditRepositoryProvider),
     settings: ref.watch(backupSettingsProvider),
     shopSettings: ref.watch(shopSettingsProvider),
-  );
-});
-
-/// Configuration OAuth Google Drive injectée au build.
-final driveConfigProvider = Provider<DriveConfig>((ref) {
-  return DriveConfig.fromEnvironment();
-});
-
-/// Connexion au compte Google (scope drive.file).
-final driveAuthenticatorProvider = Provider<DriveAuthenticator>((ref) {
-  return GoogleDriveAuthenticator(config: ref.watch(driveConfigProvider));
-});
-
-/// Paramètres locaux de la sauvegarde Drive.
-final driveBackupSettingsProvider = Provider<DriveBackupSettingsStore>((ref) {
-  return DriveBackupSettings();
-});
-
-/// Client REST minimal de l'API Google Drive.
-final driveApiProvider = Provider<DriveApi>((ref) {
-  return DriveRestApi(auth: ref.watch(driveAuthenticatorProvider));
-});
-
-/// Sauvegarde automatique et manuelle vers Google Drive.
-final driveBackupServiceProvider = Provider<DriveBackupService>((ref) {
-  return DriveBackupService(
-    backups: ref.watch(backupServiceProvider),
-    backupSettings: ref.watch(backupSettingsProvider),
-    settings: ref.watch(driveBackupSettingsProvider),
-    auth: ref.watch(driveAuthenticatorProvider),
-    api: ref.watch(driveApiProvider),
   );
 });
 
@@ -190,6 +144,7 @@ class ShopTotals {
     required this.totalDue,
     required this.totalOriginal,
     required this.clientsWithDebt,
+    required this.totalDeposits,
   });
 
   /// Total à recevoir, en FCFA.
@@ -201,6 +156,9 @@ class ShopTotals {
   /// Nombre de clients qui doivent encore de l'argent.
   final int clientsWithDebt;
 
+  /// Total des avances disponibles chez les clients, en FCFA.
+  final int totalDeposits;
+
   /// Part restant à encaisser, entre 0 et 1 (pour la jauge).
   double get dueShare => totalOriginal == 0 ? 0 : totalDue / totalOriginal;
 }
@@ -210,7 +168,9 @@ final shopTotalsProvider = Provider<AsyncValue<ShopTotals>>((ref) {
     var due = 0;
     var original = 0;
     var count = 0;
+    var deposits = 0;
     for (final summary in summaries) {
+      deposits += summary.balance.deposit;
       if (summary.hasDebt) {
         due += summary.balance.debt;
         original += summary.balance.originalTotal;
@@ -221,6 +181,7 @@ final shopTotalsProvider = Provider<AsyncValue<ShopTotals>>((ref) {
       totalDue: due,
       totalOriginal: original,
       clientsWithDebt: count,
+      totalDeposits: deposits,
     );
   });
 });

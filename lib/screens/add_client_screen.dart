@@ -117,7 +117,7 @@ class _AddClientScreenState extends ConsumerState<AddClientScreen> {
                   16,
                 ),
                 keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
+                    ScrollViewKeyboardDismissBehavior.manual,
                 child: Form(
                   key: _formKey,
                   child: Column(

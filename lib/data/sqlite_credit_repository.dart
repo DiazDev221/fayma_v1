@@ -132,7 +132,6 @@ class SqliteCreditRepository implements CreditRepository {
         nom: row['nom'] as String,
         prenom: row['prenom'] as String,
         telephone: row['telephone'] as String,
-        creditLimit: row['credit_limit'] as int,
         createdAt:
             DateTime.fromMillisecondsSinceEpoch(row['created_at'] as int),
       );
@@ -206,7 +205,9 @@ class SqliteCreditRepository implements CreditRepository {
         client.nom,
         client.prenom,
         client.telephone,
-        client.creditLimit,
+        // Ancienne colonne conservée pour les bases existantes. Le plafond
+        // de crédit n'est plus utilisé par l'application.
+        0,
         client.createdAt.millisecondsSinceEpoch,
       ],
     );
@@ -265,13 +266,11 @@ class SqliteCreditRepository implements CreditRepository {
       throw StateError('Client introuvable : ${client.id}');
     }
     _db.execute(
-      'UPDATE clients SET nom = ?, prenom = ?, telephone = ?, '
-      'credit_limit = ? WHERE id = ?',
+      'UPDATE clients SET nom = ?, prenom = ?, telephone = ? WHERE id = ?',
       [
         client.nom,
         client.prenom,
         client.telephone,
-        client.creditLimit,
         client.id,
       ],
     );

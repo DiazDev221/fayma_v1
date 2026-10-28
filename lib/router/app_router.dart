@@ -3,25 +3,29 @@ import 'package:go_router/go_router.dart';
 import '../screens/add_client_screen.dart';
 import '../screens/backup_screen.dart';
 import '../screens/client_detail_screen.dart';
+import '../screens/clients_screen.dart';
 import '../screens/deposit_screen.dart';
+import '../screens/edit_client_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/pick_contact_screen.dart';
 import '../screens/purchase_screen.dart';
 import '../screens/repayment_screen.dart';
-import '../screens/shop_settings_screen.dart';
+import '../screens/settings_screen.dart';
 
 /// Chemins de l'application, centralisés pour éviter les fautes de frappe.
 class AppRoutes {
   AppRoutes._();
 
   static const home = '/';
+  static const clients = '/clients';
   static const newClient = '/clients/new';
   static const pickContact = '/clients/contacts';
   static const backup = '/backup';
-  static const shopSettings = '/settings';
+  static const settings = '/settings';
 
   static const _client = '/clients';
   static String client(String id) => '$_client/$id';
+  static String editClient(String id) => '$_client/$id/edit';
   static String purchase(String id) => '$_client/$id/purchase';
   static String repayment(String id) => '$_client/$id/repayment';
   static String deposit(String id) => '$_client/$id/deposit';
@@ -36,7 +40,12 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.home,
       builder: (context, state) => const HomeScreen(),
     ),
-    // 02 - Ajouter un client
+    // 02 - Liste des clients
+    GoRoute(
+      path: AppRoutes.clients,
+      builder: (context, state) => const ClientsScreen(),
+    ),
+    // 02b - Ajouter un client
     // Déclaré avant '/clients/:id' pour que "new" ne soit pas pris pour un id.
     GoRoute(
       path: AppRoutes.newClient,
@@ -52,10 +61,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.backup,
       builder: (context, state) => const BackupScreen(),
     ),
-    // Paramètres de la boutique (nom utilisé dans les SMS)
+    // 09 - Paramètres : clients, nom de la boutique et sauvegarde
     GoRoute(
-      path: AppRoutes.shopSettings,
-      builder: (context, state) => const ShopSettingsScreen(),
+      path: AppRoutes.settings,
+      builder: (context, state) => const SettingsScreen(),
     ),
     // 03 - Fiche client
     GoRoute(
@@ -63,6 +72,12 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) =>
           ClientDetailScreen(clientId: state.pathParameters['id']!),
       routes: [
+        // 03b - Modifier les coordonnées du client
+        GoRoute(
+          path: 'edit',
+          builder: (context, state) =>
+              EditClientScreen(clientId: state.pathParameters['id']!),
+        ),
         // 04 - Nouvel achat à crédit
         GoRoute(
           path: 'purchase',

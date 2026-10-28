@@ -12,7 +12,6 @@ Client _client() => Client(
       nom: 'Diop',
       prenom: 'Moussa',
       telephone: '77 123 45 67',
-      creditLimit: 10000,
       createdAt: DateTime(2026, 9, 20),
     );
 

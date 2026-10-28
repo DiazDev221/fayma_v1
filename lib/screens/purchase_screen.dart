@@ -140,12 +140,9 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen> {
   Widget _buildContent(BuildContext context, ClientSummary summary) {
     final textTheme = Theme.of(context).textTheme;
     final balance = summary.balance;
-    final limit = ref.watch(shopCreditLimitProvider).valueOrNull;
 
     // Le dépôt du client est utilisé avant de créer une dette.
     final depositUsed = math.min(balance.deposit, _total);
-    final debtAfter = balance.debt + (_total - depositUsed);
-    final overLimit = !balance.allowsPurchase(_total, limit);
 
     return Column(
       children: [
@@ -157,7 +154,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen> {
               AppTheme.pagePadding,
               16,
             ),
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
             children: [
               FaymaCard(
                 padding: const EdgeInsets.symmetric(
@@ -185,12 +182,10 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen> {
                         ],
                       ),
                     ),
-                    AppStatusPill(
-                      label: overLimit ? 'Plafond dépassé' : 'À crédit',
-                      color: overLimit ? AppColors.coral : AppColors.indigo,
-                      background: overLimit
-                          ? AppColors.coralSoft
-                          : AppColors.indigoSoft,
+                    const AppStatusPill(
+                      label: 'À crédit',
+                      color: AppColors.indigo,
+                      background: AppColors.indigoSoft,
                       compact: true,
                     ),
                   ],
@@ -316,11 +311,8 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen> {
         _SummaryPanel(
           total: _total,
           depositUsed: depositUsed,
-          overLimit: overLimit,
-          debtAfter: debtAfter,
-          limit: limit,
           saving: _saving,
-          canSave: _items.isNotEmpty && !overLimit && !_saving,
+          canSave: _items.isNotEmpty && !_saving,
           onSave: () => _save(summary),
         ),
       ],
@@ -332,9 +324,6 @@ class _SummaryPanel extends StatelessWidget {
   const _SummaryPanel({
     required this.total,
     required this.depositUsed,
-    required this.overLimit,
-    required this.debtAfter,
-    required this.limit,
     required this.saving,
     required this.canSave,
     required this.onSave,
@@ -342,9 +331,6 @@ class _SummaryPanel extends StatelessWidget {
 
   final int total;
   final int depositUsed;
-  final bool overLimit;
-  final int debtAfter;
-  final int? limit;
   final bool saving;
   final bool canSave;
   final VoidCallback onSave;
@@ -352,7 +338,6 @@ class _SummaryPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final creditLimit = limit;
     return Container(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.pagePadding,
@@ -393,17 +378,6 @@ class _SummaryPanel extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-          ],
-          if (overLimit && creditLimit != null) ...[
-            AppInfoBanner(
-              icon: Icons.warning_amber_rounded,
-              message: 'Plafond de crédit dépassé : la dette serait de '
-                  '${formatFcfa(debtAfter)} pour un plafond de '
-                  '${formatFcfa(creditLimit)}.',
-              color: AppColors.coral,
-              background: AppColors.coralSoft,
-            ),
-            const SizedBox(height: 12),
           ],
           Row(
             children: [

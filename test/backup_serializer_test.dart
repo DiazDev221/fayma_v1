@@ -14,7 +14,6 @@ Client _client(String id, String prenom, String nom) => Client(
       nom: nom,
       prenom: prenom,
       telephone: '77 123 45 67',
-      creditLimit: 10000,
       createdAt: DateTime(2026, 9, 20, 9, 30),
     );
 
@@ -82,6 +81,15 @@ void main() {
       createdAt: DateTime(2026, 10, 21, 12, 30),
     );
 
+    final json = _decoded(encoded);
+    expect(json.containsKey('shop_credit_limit'), isFalse);
+    for (final client in json['clients'] as List<dynamic>) {
+      expect(
+        (client as Map<String, dynamic>).containsKey('credit_limit'),
+        isFalse,
+      );
+    }
+
     final payload = serializer.decode(encoded);
 
     expect(payload.appVersion, '0.1.0+1');
@@ -115,6 +123,12 @@ void main() {
     json.remove('shop_name');
     for (final operation in json['operations'] as List<dynamic>) {
       (operation as Map<String, dynamic>).remove('payment_method');
+    }
+    // Les anciennes sauvegardes contiennent encore un plafond par client, et
+    // certaines une limite de boutique : ces champs sont ignorés.
+    json['shop_credit_limit'] = 25000;
+    for (final client in json['clients'] as List<dynamic>) {
+      (client as Map<String, dynamic>)['credit_limit'] = 10000;
     }
 
     final payload = serializer.decode(jsonEncode(json));

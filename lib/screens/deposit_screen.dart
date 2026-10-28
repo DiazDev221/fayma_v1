@@ -167,7 +167,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
               AppTheme.pagePadding,
               16,
             ),
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
             children: [
               FaymaCard(
                 padding: const EdgeInsets.symmetric(

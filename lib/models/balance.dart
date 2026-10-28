@@ -48,15 +48,6 @@ class Balance {
   /// Date de la dette la plus ancienne, ou null si rien n'est dû.
   DateTime? get oldestDebtDate =>
       openDebts.isEmpty ? null : openDebts.first.date;
-
-  /// Un achat de [amount] reste-t-il sous le plafond [creditLimit] ?
-  /// Le dépôt disponible est consommé avant de créer une dette.
-  /// Un plafond null signifie qu'aucune limite n'est appliquée.
-  bool allowsPurchase(int amount, int? creditLimit) {
-    if (creditLimit == null) return true;
-    final newDebt = math.max(0, amount - deposit);
-    return debt + newDebt <= creditLimit;
-  }
 }
 
 class _MutableDebt {

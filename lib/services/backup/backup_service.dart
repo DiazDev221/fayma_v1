@@ -13,7 +13,6 @@ import 'backup_exception.dart';
 import 'backup_format.dart';
 import 'backup_serializer.dart';
 import 'backup_settings.dart';
-import 'recovery_code.dart';
 
 /// Contenu chiffré d'une sauvegarde, avant écriture sur disque.
 class BackupData {
@@ -54,14 +53,10 @@ class BackupPreview {
   const BackupPreview({
     required this.payload,
     required this.sourceName,
-    required this.recoveryCode,
   });
 
   final BackupPayload payload;
   final String sourceName;
-
-  /// Code qui a permis de déchiffrer cette sauvegarde.
-  final String recoveryCode;
 }
 
 /// Orchestre l'export et la restauration d'une sauvegarde chiffrée.
@@ -95,19 +90,12 @@ class BackupService {
   final Future<Directory> Function() _directoryProvider;
   final Future<String> Function() _appVersionProvider;
 
-  Future<String> ensureRecoveryCode() => settings.ensureRecoveryCode();
-
-  Future<String?> recoveryCode() => settings.readRecoveryCode();
-
   Future<DateTime?> lastBackupAt() => settings.lastBackupAt();
 
   Future<void> markBackupDone(DateTime at) => settings.setLastBackupAt(at);
 
   /// Crée le contenu chiffré d'une sauvegarde, sans écrire de fichier.
-  ///
-  /// Utilisé par l'export vers Google Drive, qui envoie directement les octets.
   Future<BackupData> createData() async {
-    final code = await settings.ensureRecoveryCode();
     final snapshot = await repository.snapshot();
     final appVersion = await _appVersionProvider();
     final deviceId = await settings.deviceId();
@@ -124,10 +112,7 @@ class BackupService {
       shopName: shopName,
       createdAt: createdAt,
     );
-    final encrypted = await _crypto.encryptText(
-      clear,
-      recoveryCode: code,
-    );
+    final encrypted = await _crypto.encryptText(clear);
 
     return BackupData(
       bytes: Uint8List.fromList(utf8.encode(encrypted)),
@@ -158,7 +143,13 @@ class BackupService {
   }
 
   /// Lit et déchiffre un fichier sans toucher aux données existantes.
-  Future<BackupPreview> inspectFile(File file, String recoveryCode) async {
+  ///
+  /// [legacyRecoveryCode] n'est utile que pour les sauvegardes créées avant
+  /// la suppression du code de récupération.
+  Future<BackupPreview> inspectFile(
+    File file, {
+    String? legacyRecoveryCode,
+  }) async {
     final int length;
     try {
       length = await file.length();
@@ -193,8 +184,8 @@ class BackupService {
     }
     return _inspectText(
       content,
-      recoveryCode: recoveryCode,
       sourceName: p.basename(file.path),
+      legacyRecoveryCode: legacyRecoveryCode,
     );
   }
 
@@ -202,8 +193,8 @@ class BackupService {
   /// pas toujours un chemin local.
   Future<BackupPreview> inspectBytes(
     Uint8List bytes, {
-    required String recoveryCode,
     required String sourceName,
+    String? legacyRecoveryCode,
   }) async {
     if (bytes.isEmpty) {
       throw const BackupException('Le fichier de sauvegarde est vide.');
@@ -225,19 +216,19 @@ class BackupService {
     }
     return _inspectText(
       content,
-      recoveryCode: recoveryCode,
       sourceName: sourceName,
+      legacyRecoveryCode: legacyRecoveryCode,
     );
   }
 
   Future<BackupPreview> _inspectText(
     String content, {
-    required String recoveryCode,
     required String sourceName,
+    String? legacyRecoveryCode,
   }) async {
     final clear = await _crypto.decryptText(
       content,
-      recoveryCode: recoveryCode,
+      legacyRecoveryCode: legacyRecoveryCode,
     );
     final payload = _serializer.decode(clear);
 
@@ -257,7 +248,6 @@ class BackupService {
     return BackupPreview(
       payload: payload,
       sourceName: sourceName,
-      recoveryCode: normalizeRecoveryCode(recoveryCode),
     );
   }
 
@@ -265,7 +255,6 @@ class BackupService {
   Future<void> restore(BackupPreview preview) async {
     await repository.replaceAll(preview.payload.snapshot);
     try {
-      await settings.setRecoveryCode(preview.recoveryCode);
       await settings.setShopId(preview.payload.shopId);
 
       // Le nom de la boutique fait partie de la sauvegarde. Une sauvegarde
@@ -275,8 +264,8 @@ class BackupService {
         await shopSettings?.saveShopName(shopName);
       }
     } catch (_) {
-      // Les données sont déjà restaurées ; le code, l'identifiant de
-      // boutique et le nom ne sont que des informations de continuité.
+      // Les données sont déjà restaurées ; l'identifiant de boutique et le
+      // nom ne sont que des informations de continuité.
     }
   }
 

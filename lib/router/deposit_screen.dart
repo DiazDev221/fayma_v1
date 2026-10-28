@@ -110,7 +110,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
               AppTheme.pagePadding,
               16,
             ),
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
             children: [
               Text(
                 summary.client.fullName,

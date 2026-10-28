@@ -215,31 +215,6 @@ void main() {
     });
   });
 
-  group('Balance.allowsPurchase', () {
-    test('accepte un achat qui atteint exactement le plafond', () {
-      final balance = computeBalance([_credit('a', 8000, 1)]);
-      expect(balance.allowsPurchase(2000, 10000), isTrue);
-    });
-
-    test('refuse un achat qui dépasse le plafond', () {
-      final balance = computeBalance([_credit('a', 8000, 1)]);
-      expect(balance.allowsPurchase(2001, 10000), isFalse);
-    });
-
-    test('le dépôt disponible réduit la dette créée par l\'achat', () {
-      final balance = computeBalance([_deposit('d', 5000, 1)]);
-      // 5 500 - 5 000 de dépôt = 500 de dette, sous le plafond de 1 000.
-      expect(balance.allowsPurchase(5500, 1000), isTrue);
-      // 6 100 - 5 000 = 1 100 de dette, au-dessus du plafond.
-      expect(balance.allowsPurchase(6100, 1000), isFalse);
-    });
-
-    test('sans plafond, tous les achats sont acceptés', () {
-      final balance = computeBalance([_credit('a', 8000, 1)]);
-      expect(balance.allowsPurchase(1000000, null), isTrue);
-    });
-  });
-
   group('Operation', () {
     test('Operation.purchase additionne les lignes', () {
       final op = Operation.purchase(
