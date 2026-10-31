@@ -5,6 +5,7 @@ import 'data/credit_repository.dart';
 import 'models/balance.dart';
 import 'models/client.dart';
 import 'models/operation.dart';
+import 'services/backup/backup_file_saver.dart';
 import 'services/backup/backup_service.dart';
 import 'services/backup/backup_settings.dart';
 import 'services/pdf/pdf_export_service.dart';
@@ -56,6 +57,11 @@ final backupServiceProvider = Provider<BackupService>((ref) {
     settings: ref.watch(backupSettingsProvider),
     shopSettings: ref.watch(shopSettingsProvider),
   );
+});
+
+/// Enregistrement direct d'une sauvegarde dans le gestionnaire de fichiers.
+final backupFileSaverProvider = Provider<BackupFileSaver>((ref) {
+  return const BackupFileSaver();
 });
 
 /// Factures et rapport général au format PDF.

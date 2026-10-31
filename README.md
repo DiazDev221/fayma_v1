@@ -50,8 +50,9 @@ Spécificités iOS :
   est dans `ios/Runner/Info.plist`) ;
 - l'envoi d'un SMS ouvre l'application Messages avec le message pré-rempli ;
   le commerçant appuie ensuite sur « Envoyer » ;
-- les factures, rapports et sauvegardes passent par la feuille de partage iOS
-  (Fichiers, Mail, WhatsApp, impression, etc.) ;
+- les factures et rapports passent par la feuille de partage iOS (Fichiers,
+  Mail, WhatsApp, impression, etc.) ; les sauvegardes peuvent être
+  enregistrées directement dans Fichiers ou partagées ;
 - l'icône est générée depuis `assets/icon/fayma_icon_ios.png`, sans canal
   alpha, comme l'exige l'App Store.
 
@@ -159,10 +160,12 @@ lancement : aucune action n'est demandée et aucune donnée n'est perdue.
 
 Depuis **Paramètres**, la tuile **Sauvegarde** ouvre l'écran dédié.
 
-- **Exporter une sauvegarde** crée un fichier `.fayma` chiffré avec
-  Argon2id + AES-256-GCM, puis ouvre la feuille de partage du téléphone. Le
-  fichier peut être envoyé vers Files, un e-mail, etc. Aucun code n'est à
-  retenir : la clé est interne à l'application.
+- **Enregistrer la sauvegarde** crée un fichier `.fayma` chiffré avec
+  Argon2id + AES-256-GCM, puis ouvre le gestionnaire de fichiers du téléphone
+  pour choisir le dossier de destination (Fichiers, Téléchargements, carte SD,
+  etc.). Aucun code n'est à retenir : la clé est interne à l'application.
+- **Partager la sauvegarde** crée le même fichier et ouvre la feuille de
+  partage (e-mail, messagerie, etc.) pour l'envoyer directement.
 - La sauvegarde contient **toutes les données de la boutique** : clients,
   opérations (lignes d'achat, notes, annulations et moyen de paiement des
   dépôts et remboursements) et **nom de la boutique**. Ce nom est restauré en

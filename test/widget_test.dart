@@ -111,7 +111,8 @@ void main() {
       const Offset(0, -1000),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Exporter une sauvegarde'), findsOneWidget);
+    expect(find.text('Enregistrer la sauvegarde'), findsOneWidget);
+    expect(find.text('Partager la sauvegarde'), findsOneWidget);
     expect(find.text('Restaurer une sauvegarde'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

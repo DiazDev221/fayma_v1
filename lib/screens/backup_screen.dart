@@ -48,7 +48,38 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     setState(() => _lastBackup = last);
   }
 
-  Future<void> _export() async {
+  Future<void> _save() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final service = ref.read(backupServiceProvider);
+      final data = await service.createData();
+      final saved = await ref.read(backupFileSaverProvider).save(
+            fileName: data.fileName,
+            bytes: data.bytes,
+            mimeType: backupMimeType,
+          );
+
+      // L'utilisateur a annulé le sélecteur : aucune sauvegarde n'a été
+      // écrite, la date de la dernière sauvegarde reste inchangée.
+      if (!saved) return;
+
+      final now = DateTime.now();
+      await service.markBackupDone(now);
+      if (!mounted) return;
+      setState(() => _lastBackup = now);
+      _showMessage('Sauvegarde enregistrée dans vos fichiers.');
+    } on BackupException catch (error) {
+      _showMessage(error.message);
+    } catch (error) {
+      debugPrint('Enregistrement de la sauvegarde : $error');
+      _showMessage('Impossible d\'enregistrer la sauvegarde. Réessayez.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _share() async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
@@ -310,14 +341,20 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   const SizedBox(height: 26),
                   const AppSectionHeader(
                     title: 'Sauvegarder ou restaurer',
-                    subtitle: 'Créez un fichier chiffré, puis partagez-le par '
-                        'e-mail ou enregistrez-le sur un autre téléphone.',
+                    subtitle: 'Créez un fichier chiffré et enregistrez-le dans '
+                        'vos fichiers, ou partagez-le par e-mail.',
                   ),
                   const SizedBox(height: 12),
                   FilledButton.icon(
-                    onPressed: canAct ? _export : null,
+                    onPressed: canAct ? _save : null,
+                    icon: const Icon(Icons.save_alt_rounded, size: 20),
+                    label: const Text('Enregistrer la sauvegarde'),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: canAct ? _share : null,
                     icon: const Icon(Icons.ios_share_outlined, size: 20),
-                    label: const Text('Exporter une sauvegarde'),
+                    label: const Text('Partager la sauvegarde'),
                   ),
                   const SizedBox(height: 10),
                   OutlinedButton.icon(

@@ -243,7 +243,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const AppInfoBanner(
                     icon: Icons.phone_android_outlined,
                     message: 'Vos données restent sur ce téléphone. Pensez à '
-                        'exporter une sauvegarde régulièrement.',
+                        'enregistrer une sauvegarde régulièrement.',
                     color: AppColors.textSecondary,
                     background: AppColors.surfaceMuted,
                   ),
