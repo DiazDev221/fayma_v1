@@ -40,7 +40,7 @@ String buildSmsMessage({
           '${_balanceLine(balanceAfter)}';
     case OperationType.deposit:
       body = '$greeting\n'
-          'Votre versement de $amount a bien été reçu le $date.\n'
+          'Votre dépôt de $amount a bien été reçu le $date.\n'
           '${_balanceLine(balanceAfter)}';
   }
 

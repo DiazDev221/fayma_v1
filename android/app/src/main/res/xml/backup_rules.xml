@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sauvegarde automatique Android 11 et antérieurs.
+
+  La base SQLite (fayma.db) est créée dans le dossier de support de
+  l'application, exposé ici par le domaine « file ». Les préférences
+  contiennent le nom de la boutique et les identifiants de sauvegarde.
+
+  Ces données sont copiées dans le compte Google de l'utilisateur et
+  restaurées automatiquement lors d'une réinstallation avec la même
+  signature d'application. Le dossier temporaire (cache) n'est jamais
+  sauvegardé.
+-->
+<full-backup-content>
+    <include domain="file" path="." />
+    <include domain="sharedpref" path="." />
+    <include domain="database" path="." />
+</full-backup-content>

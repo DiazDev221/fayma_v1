@@ -95,7 +95,7 @@ void main() {
     expect(
       message,
       'Bonjour Aissatou,\n'
-      'Votre versement de 5 000 FCFA a bien été reçu le 21 oct. 2026.\n'
+      'Votre dépot de 5 000 FCFA a bien été reçu le 21 oct. 2026.\n'
       'Solde disponible : 17 000 FCFA.\n'
       'Merci de votre confiance.',
     );
@@ -110,7 +110,7 @@ void main() {
     expect(
       message,
       'Bonjour Moussa,\n'
-      'Votre versement de 5 000 FCFA a bien été reçu le 21 oct. 2026.\n'
+      'Votre dépot de 5 000 FCFA a bien été reçu le 21 oct. 2026.\n'
       'Reste à payer : 20 000 FCFA.\n'
       'Merci de votre confiance.',
     );

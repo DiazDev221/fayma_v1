@@ -62,6 +62,15 @@ Future<Uint8List> buildGeneralReportPdf(GeneralReportData data) async {
     if (balance.deposit > 0) clientsWithDeposit++;
   }
 
+  final clientsWithDebtList = [
+    for (final client in clients)
+      if ((balances[client.id] ?? Balance.empty).debt > 0) client,
+  ];
+  final clientsWithDepositList = [
+    for (final client in clients)
+      if ((balances[client.id] ?? Balance.empty).deposit > 0) client,
+  ];
+
   var totalPurchases = 0;
   var totalRepayments = 0;
   var totalDepositsReceived = 0;
@@ -197,20 +206,36 @@ Future<Uint8List> buildGeneralReportPdf(GeneralReportData data) async {
         ),
         pw.SizedBox(height: 22),
         pdfSectionTitle(
-          'Situation des clients',
-          subtitle: clientsWithDeposit > 0
-              ? '$clientsWithDebt à crédit · $clientsWithDeposit avec un dépôt'
-              : '$clientsWithDebt client${clientsWithDebt > 1 ? 's' : ''} '
-                  'à crédit',
+          'Crédits en cours',
+          subtitle: clientsWithDebt > 0
+              ? '$clientsWithDebt client${clientsWithDebt > 1 ? 's' : ''} '
+                  'à crédit'
+              : 'Aucune dette en cours',
         ),
         pw.SizedBox(height: 9),
-        if (clients.isEmpty)
-          _emptyMessage('Aucun client enregistré dans la boutique.')
+        if (clientsWithDebtList.isEmpty)
+          _emptyMessage('Aucun client n’a de dette en cours.')
         else
-          _clientsTable(
-            clients: clients,
+          _creditsTable(
+            clients: clientsWithDebtList,
             balances: balances,
             totalDue: totalDue,
+          ),
+        pw.SizedBox(height: 24),
+        pdfSectionTitle(
+          'Dépôts disponibles',
+          subtitle: clientsWithDeposit > 0
+              ? '$clientsWithDeposit client'
+                  '${clientsWithDeposit > 1 ? 's' : ''} avec un dépôt'
+              : 'Aucun dépôt disponible',
+        ),
+        pw.SizedBox(height: 9),
+        if (clientsWithDepositList.isEmpty)
+          _emptyMessage('Aucun client n’a de dépôt disponible.')
+        else
+          _depositsTable(
+            clients: clientsWithDepositList,
+            balances: balances,
             totalDeposit: totalDeposit,
           ),
         pw.SizedBox(height: 24),
@@ -296,11 +321,10 @@ pw.Widget _metricCard(
   );
 }
 
-pw.Widget _clientsTable({
+pw.Widget _creditsTable({
   required List<Client> clients,
   required Map<String, Balance> balances,
   required int totalDue,
-  required int totalDeposit,
 }) {
   return pw.Table(
     border: const pw.TableBorder(
@@ -312,8 +336,6 @@ pw.Widget _clientsTable({
       0: const pw.FlexColumnWidth(3),
       1: const pw.FlexColumnWidth(1.7),
       2: const pw.FlexColumnWidth(1.2),
-      3: const pw.FlexColumnWidth(1.2),
-      4: const pw.FlexColumnWidth(1.2),
     },
     children: [
       pw.TableRow(
@@ -323,12 +345,10 @@ pw.Widget _clientsTable({
           pdfCell('Client', bold: true),
           pdfCell('Téléphone', bold: true),
           pdfCell('Dette', bold: true, align: pw.TextAlign.right),
-          pdfCell('Dépôt', bold: true, align: pw.TextAlign.right),
-          pdfCell('Statut', bold: true, align: pw.TextAlign.right),
         ],
       ),
       for (final client in clients)
-        _clientRow(client, balances[client.id] ?? Balance.empty),
+        _debtRow(client, balances[client.id] ?? Balance.empty),
       pw.TableRow(
         decoration: const pw.BoxDecoration(color: PdfStyle.surfaceMuted),
         children: [
@@ -341,36 +361,15 @@ pw.Widget _clientsTable({
             pdfFcfa(totalDue),
             bold: true,
             align: pw.TextAlign.right,
-            color: totalDue > 0 ? PdfStyle.coral : PdfStyle.mintDark,
+            color: PdfStyle.coral,
           ),
-          pdfCell(
-            pdfFcfa(totalDeposit),
-            bold: true,
-            align: pw.TextAlign.right,
-            color:
-                totalDeposit > 0 ? PdfStyle.mintDark : PdfStyle.textSecondary,
-          ),
-          pdfCell(''),
         ],
       ),
     ],
   );
 }
 
-pw.TableRow _clientRow(Client client, Balance balance) {
-  final String status;
-  final PdfColor statusColor;
-  if (balance.debt > 0) {
-    status = 'À crédit';
-    statusColor = PdfStyle.coral;
-  } else if (balance.deposit > 0) {
-    status = 'Dépôt';
-    statusColor = PdfStyle.mintDark;
-  } else {
-    status = 'À jour';
-    statusColor = PdfStyle.textSecondary;
-  }
-
+pw.TableRow _debtRow(Client client, Balance balance) {
   return pw.TableRow(
     children: [
       pdfCell(client.fullName, bold: true),
@@ -378,18 +377,69 @@ pw.TableRow _clientRow(Client client, Balance balance) {
       pdfCell(
         pdfFcfa(balance.debt),
         align: pw.TextAlign.right,
-        color: balance.debt > 0 ? PdfStyle.coral : PdfStyle.textSecondary,
+        color: PdfStyle.coral,
       ),
+    ],
+  );
+}
+
+pw.Widget _depositsTable({
+  required List<Client> clients,
+  required Map<String, Balance> balances,
+  required int totalDeposit,
+}) {
+  return pw.Table(
+    border: const pw.TableBorder(
+      top: pw.BorderSide(color: PdfStyle.border, width: 0.7),
+      bottom: pw.BorderSide(color: PdfStyle.border, width: 0.7),
+      horizontalInside: pw.BorderSide(color: PdfStyle.border, width: 0.5),
+    ),
+    columnWidths: {
+      0: const pw.FlexColumnWidth(3),
+      1: const pw.FlexColumnWidth(1.7),
+      2: const pw.FlexColumnWidth(1.2),
+    },
+    children: [
+      pw.TableRow(
+        repeat: true,
+        decoration: const pw.BoxDecoration(color: PdfStyle.surfaceMuted),
+        children: [
+          pdfCell('Client', bold: true),
+          pdfCell('Téléphone', bold: true),
+          pdfCell('Dépôt', bold: true, align: pw.TextAlign.right),
+        ],
+      ),
+      for (final client in clients)
+        _depositRow(client, balances[client.id] ?? Balance.empty),
+      pw.TableRow(
+        decoration: const pw.BoxDecoration(color: PdfStyle.surfaceMuted),
+        children: [
+          pdfCell(
+            'TOTAL · ${clients.length} client${clients.length > 1 ? 's' : ''}',
+            bold: true,
+          ),
+          pdfCell(''),
+          pdfCell(
+            pdfFcfa(totalDeposit),
+            bold: true,
+            align: pw.TextAlign.right,
+            color: PdfStyle.mintDark,
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+pw.TableRow _depositRow(Client client, Balance balance) {
+  return pw.TableRow(
+    children: [
+      pdfCell(client.fullName, bold: true),
+      pdfCell(formatPhone(client.telephone)),
       pdfCell(
         pdfFcfa(balance.deposit),
         align: pw.TextAlign.right,
-        color: balance.deposit > 0 ? PdfStyle.mintDark : PdfStyle.textSecondary,
-      ),
-      pdfCell(
-        status,
-        align: pw.TextAlign.right,
-        bold: true,
-        color: statusColor,
+        color: PdfStyle.mintDark,
       ),
     ],
   );

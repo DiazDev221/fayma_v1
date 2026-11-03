@@ -107,8 +107,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sender.calls, 1);
-    // Les clients sont triés par nom : Fatou Ndiaye est la première endettée.
-    expect(sender.phone, '78 654 32 10');
-    expect(sender.message, contains('il vous reste 8 500 FCFA à payer'));
+    // Tri par activité récente : Moussa Diop a l'opération la plus récente.
+    expect(sender.phone, '77 123 45 67');
+    expect(sender.message, contains('il vous reste 25 000 FCFA à payer'));
   });
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -338,6 +339,19 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     color: AppColors.mintDark,
                     background: AppColors.mintSoft,
                   ),
+                  if (defaultTargetPlatform == TargetPlatform.android) ...[
+                    const SizedBox(height: 12),
+                    const AppInfoBanner(
+                      icon: Icons.cloud_done_outlined,
+                      title: 'Sauvegarde automatique du téléphone',
+                      message: 'Android copie aussi les données de Fayma dans '
+                          'votre compte Google. Après une réinstallation, le '
+                          'téléphone les restaure automatiquement. À la '
+                          'désinstallation, acceptez « Conserver les données » '
+                          'si Android le propose. Gardez l’export manuel pour '
+                          'changer d’appareil ou sauvegarder immédiatement.',
+                    ),
+                  ],
                   const SizedBox(height: 26),
                   const AppSectionHeader(
                     title: 'Sauvegarder ou restaurer',

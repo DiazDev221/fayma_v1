@@ -137,7 +137,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
     final amount = _amount;
     final valid = amount > 0;
 
-    // Le versement règle d'abord la dette, le surplus reste en dépôt.
+    // Le dépôt règle d'abord la dette, le surplus reste en dépôt.
     final paidOnDebt = math.min(amount, debt);
     final remainingDebt = debt - paidOnDebt;
     final newDeposit = currentDeposit + amount - paidOnDebt;
@@ -146,7 +146,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
     if (debt == 0) {
       allocationText = 'Le montant s’ajoute au dépôt du client.';
     } else if (amount == 0) {
-      allocationText = 'Ce versement sera d’abord déduit de la dette du '
+      allocationText = 'Ce dépôt sera d’abord déduit de la dette du '
           'client. Le surplus, s’il y en a, restera en dépôt.';
     } else if (newDeposit > 0) {
       allocationText = 'Sur ${formatFcfa(amount)} : '

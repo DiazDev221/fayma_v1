@@ -12,7 +12,9 @@ flutter test
 ```
 
 L'application cible Android (API 24 minimum) et iOS (15 minimum). La base
-SQLite est stockée dans le dossier privé de l'application (`fayma.db`).
+SQLite est stockée dans le dossier privé de l'application (`fayma.db`). Sur
+Android, elle est incluse dans la sauvegarde automatique du téléphone pour
+survivre à une désinstallation.
 
 ## Version iOS
 
@@ -185,9 +187,29 @@ Depuis **Paramètres**, la tuile **Sauvegarde** ouvre l'écran dédié.
   inventés. L'ancien plafond de crédit par client, encore présent, est ignoré.
   La version du format reste la 1 pour préserver cette compatibilité.
 
-La sauvegarde automatique Android est désactivée (`android:allowBackup="false"`)
-pour éviter des copies non maîtrisées. Seuls les exports chiffrés explicites
-servent à restaurer l'application après une désinstallation ou sur un nouveau
-téléphone. Sur iOS, les données restent incluses dans la sauvegarde iCloud de
-l'iPhone si l'utilisateur l'a activée ; l'export `.fayma` reste la seule
-sauvegarde portable vers un autre appareil.
+## Sauvegarde automatique du téléphone
+
+En complément de l'export `.fayma`, l'application participe à la sauvegarde
+automatique Android (`android:allowBackup="true"`). La base SQLite, le nom de
+la boutique et les identifiants de sauvegarde sont inclus dans la copie
+chiffrée du compte Google de l'utilisateur. Lors d'une réinstallation avec la
+même signature et le même compte Google, Android restaure ces données avant le
+premier lancement : aucune action n'est nécessaire.
+
+- La copie automatique est gérée par Android. Elle peut prendre jusqu'à une
+  journée et nécessite que la sauvegarde du téléphone soit activée. Sur
+  certains appareils sans services Google, elle peut être indisponible.
+- `android:hasFragileUserData="true"` ajoute l'option **Conserver les données
+  de l'application** à la désinstallation depuis les paramètres Android
+  (Android 10 et plus). Si elle est cochée, les données locales sont gardées
+  pour la réinstallation suivante. Cette option n'apparaît pas lors d'une
+  désinstallation depuis le Play Store.
+- L'export `.fayma` reste la sauvegarde de référence pour changer de
+  téléphone, conserver une copie immédiate ou récupérer les données si la
+  sauvegarde automatique du téléphone est désactivée.
+
+Sur iOS, les données restent incluses dans la sauvegarde iCloud de l'iPhone si
+l'utilisateur l'a activée ; elles sont restaurées lors d'une restauration
+complète de l'appareil. L'export `.fayma` reste nécessaire pour retrouver ses
+données après une simple réinstallation de l'application ou sur un autre
+appareil.

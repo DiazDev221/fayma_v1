@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -240,10 +241,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const AppInfoBanner(
+                  AppInfoBanner(
                     icon: Icons.phone_android_outlined,
-                    message: 'Vos données restent sur ce téléphone. Pensez à '
-                        'enregistrer une sauvegarde régulièrement.',
+                    message: defaultTargetPlatform == TargetPlatform.android
+                        ? 'Android sauvegarde automatiquement les données de '
+                            'Fayma dans votre compte Google. Elles sont '
+                            'restaurées après une réinstallation. Vous pouvez '
+                            'aussi enregistrer un fichier de sauvegarde.'
+                        : 'Vos données restent sur ce téléphone. Pensez à '
+                            'enregistrer une sauvegarde régulièrement.',
                     color: AppColors.textSecondary,
                     background: AppColors.surfaceMuted,
                   ),

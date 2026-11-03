@@ -98,6 +98,10 @@ class ClientSummary {
 }
 
 /// Clients avec leur solde, pour la liste de l'accueil.
+///
+/// Triés par activité récente : le client dont la dernière opération est la
+/// plus récente passe en premier. Les clients sans opération sont placés à la
+/// fin, et les ex æquo sont triés par nom.
 final clientSummariesProvider =
     Provider<AsyncValue<List<ClientSummary>>>((ref) {
   final clients = ref.watch(clientsProvider);
@@ -120,17 +124,38 @@ final clientSummariesProvider =
   }
 
   final byClient = <String, List<Operation>>{};
+  final latestByClient = <String, DateTime>{};
   for (final op in operationList) {
     byClient.putIfAbsent(op.clientId, () => []).add(op);
+    final latest = latestByClient[op.clientId];
+    if (latest == null || op.date.isAfter(latest)) {
+      latestByClient[op.clientId] = op.date;
+    }
   }
 
-  return AsyncData([
+  final summaries = [
     for (final client in clientList)
       ClientSummary(
         client: client,
         balance: computeBalance(byClient[client.id] ?? const []),
       ),
-  ]);
+  ]..sort((a, b) {
+      final aDate = latestByClient[a.client.id];
+      final bDate = latestByClient[b.client.id];
+      if (aDate != null && bDate != null) {
+        final byDate = bDate.compareTo(aDate);
+        if (byDate != 0) return byDate;
+      } else if (aDate != null) {
+        return -1;
+      } else if (bDate != null) {
+        return 1;
+      }
+      return a.client.fullName
+          .toLowerCase()
+          .compareTo(b.client.fullName.toLowerCase());
+    });
+
+  return AsyncData(summaries);
 });
 
 /// Un client précis avec son solde. Null si le client n'existe pas.
